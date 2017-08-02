@@ -9,7 +9,7 @@ names(IMPACT_wide)
 
 ##creating scaled LPA and MVPA variables in the wide dataset
 test_wide_scaled <- IMPACT_wide %>%
-  select(c(ID:DeltaM12PHS), -c(CHAMPSMVTotal:CHAMPSWalk12MTotal25262728), c(WThr:PA12Mcatc))%>%
+  select(ID:DeltaM12PHS, -(CHAMPSMVTotal:CHAMPSWalk12MTotal25262728), WThr:PA12Mcatc)%>%
   filter(ValidDays_BL > 0)%>%
   mutate(LPAstd = (LPATotal/ValidDays_BL)*7)%>%
   filter(ValidDays_3M > 0)%>%
@@ -49,8 +49,17 @@ table(test_wideGS$GS.cat, test_wideGS$PAcatc)
 #Creating tibbles for each outcomes of interest
 #LPA by baseline gaitspeed category
 IMP_lpags <- test_wideGS%>%
-  select(c(ID:BMI), c(LPAstd:TotalPA12Mstd), c(GS.400:GS.12Mcat)) %>% #select relevant variables
-  #filter(ID == 11, ID == 76)%>% # removing subjects 11 and 76 who had extremely high levels of activity
+  select(ID:BMI, LPAstd:TotalPA12Mstd, GS.400:GS.12Mcat) %>% #select relevant variables
+  filter(ID != 11, ID != 76)%>% # removing subjects 11 and 76 who had extremely high levels of activity
+  na.omit()%>% #removing the NA's
+  group_by(Treatment, GS.cat)%>%
+  summarise(LPA.s_mean = mean(LPAstd), #adding a data point for the mean by GS.cat
+            LPA.s_ci = 1.96 * sd(LPAstd)/sqrt(n())) # adding 95% CI's
+
+# removing outliers
+MP_lpags2 <- test_wideGS%>%
+  select(ID:BMI, LPAstd:TotalPA12Mstd, GS.400:GS.12Mcat) %>% #select relevant variables
+  filter(ID != 11, ID != 76)%>% # removing subjects 11 and 76 who had extremely high levels of activity
   na.omit()%>% #removing the NA's
   group_by(Treatment, GS.cat)%>%
   summarise(LPA.s_mean = mean(LPAstd), #adding a data point for the mean by GS.cat
@@ -58,7 +67,7 @@ IMP_lpags <- test_wideGS%>%
 
 #MVPA by baseline gaitspeed category
 IMP_mvpags <- test_wideGS%>%
-  select(c(ID:BMI), c(LPAstd:TotalPA12Mstd), c(GS.400:GS.12Mcat)) %>% #select relevant variables
+  select(ID:BMI, LPAstd:TotalPA12Mstd, GS.400:GS.12Mcat) %>% #select relevant variables
   na.omit()%>% #removing the NA's
   group_by(Treatment, GS.cat)%>%
   summarise(MVPA.s_mean = mean(MVPAstd), #adding a data point for the mean by GS.cat
@@ -68,7 +77,7 @@ IMP_mvpags <- test_wideGS%>%
 
 ##creating scaled LPA and MVPA variables in the long dataset
 test_long_scaled <- IMPACT_long %>%
-  select((pid:TotalPAstd))%>%
+  select(pid:TotalPAstd)%>%
   filter(ValidDays > 0)%>%
   mutate(LPAstd = (LPA/ValidDays)*7)%>%
   mutate(MVPAstd = (MVPA/ValidDays)*7) %>%
